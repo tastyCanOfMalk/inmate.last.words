@@ -6,6 +6,7 @@ This repository: https://github.com/tastyCanOfMalk/inmate.last.words
 
 Original data: https://www.kaggle.com/mykhe1097/last-words-of-death-row-inmates/home
 
+# Data
 The dataset consists of 545 observations with 21 variables. They are: 
 - Execution: The order of execution, numeric. 
 - LastName: Last name of the offender, character. 
