@@ -9,8 +9,9 @@ library(viridis)
 if(!require(gridExtra)) install.packages("gridExtra")
 library(gridExtra)
 
-setwd("C:/Users/e/Documents/R/inmate.last.words")
-x <- read.csv("data/Texas Last Statement - CSV.csv", stringsAsFactors = F)
+setwd("/home/e/R/inmate.last.words")
+# setwd("C:/Users/e/Documents/R/inmate.last.words")
+x <- read_csv("data/Texas Last Statement - CSV.csv")
 
 glimpse(x)
 summary(x)
@@ -18,7 +19,8 @@ summary(x)
 # EDA, focus on demographic
 y <- x %>%
   select(Age,Race,AgeWhenReceived,EducationLevel,PreviousCrime) %>%
-  mutate(Served = Age-AgeWhenReceived)
+  mutate(Served = Age-AgeWhenReceived) %>% 
+  mutate(Race=as.factor(Race))
 summary(y)
 
 ## Age of execution histogram
@@ -44,7 +46,7 @@ p1 <- x %>%
   scale_fill_viridis(option="E")
 p1
 
-## Why are whites executed at a later age?
+## Are whites executed at a later age?
 ## Let's check AgeWhenReceived distribution
 p2 <- x %>% 
   filter(Race != "Other") %>% 
@@ -57,6 +59,18 @@ p2 <- x %>%
   theme(legend.position="none")+
   scale_fill_viridis(option="E")
 p2
+
+# stat binline version
+p2.1 <- x %>% 
+  filter(Race != "Other") %>% 
+  ggplot(aes(x=AgeWhenReceived,y=Race,fill=Race))+
+  stat_binline(scale=.9, bins=18)+
+  scale_x_continuous(limits=c(10,70),
+                     breaks=c(seq(15,70,5)))+
+  ggtitle("Age when received by race")+
+  xlab("Age when received")+
+  theme(legend.position="none")
+p2.1
 
 grid.arrange(p2,p1,nrow=2)
 
@@ -90,19 +104,19 @@ x %>%
   mutate(Served = Age-AgeWhenReceived) %>% 
   ggplot(aes(x=Served,fill=Race))+
   geom_density(alpha=.8)
-  facet_wrap(Race~.)
+  # facet_wrap(Race~.)
 
   
-  x %>% 
-    filter(Race != "Other") %>% 
-    ggplot(aes(fill=Race))+
-    geom_density_ridges(scale=1,rel_min_height=.01,alpha=.5,aes(x=Age,y=Race))+
-    geom_density_ridges(scale=1,rel_min_height=.01,alpha=.5,aes(x=AgeWhenReceived, y=Race))+
-    scale_x_continuous(limits=c(10,70),
-                       breaks=c(seq(15,70,5)))+
-    ggtitle("Age of execution by race")+
-    xlab("Age when executed")+
-    theme(legend.position="none")
+x %>% 
+  filter(Race != "Other") %>% 
+  ggplot(aes(fill=Race))+
+  geom_density_ridges(scale=1,rel_min_height=.01,alpha=.5,aes(x=Age,y=Race))+
+  geom_density_ridges(scale=1,rel_min_height=.01,alpha=.5,aes(x=AgeWhenReceived, y=Race))+
+  scale_x_continuous(limits=c(10,70),
+                     breaks=c(seq(15,70,5)))+
+  ggtitle("Age of execution by race")+
+  xlab("Age when executed")+
+  theme(legend.position="none")
   
   
   
