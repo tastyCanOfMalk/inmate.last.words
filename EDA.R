@@ -1,7 +1,9 @@
-if(!require(tibble)) install.packages("tibble")
-library(tibble)
+# if(!require(tibble)) install.packages("tibble")
+# library(tibble)
 if(!require(tidyverse)) install.packages("tidyverse")
 library(tidyverse)
+if(!require(naniar)) install.packages("naniar")
+library(naniar) # gg_miss
 if(!require(ggridges)) install.packages("ggridges")
 library(ggridges)
 if(!require(viridis)) install.packages("viridis")
@@ -13,20 +15,84 @@ setwd("/home/e/R/inmate.last.words")
 # setwd("C:/Users/e/Documents/R/inmate.last.words")
 x <- read_csv("data/Texas Last Statement - CSV.csv")
 
-glimpse(x)
-summary(x)
+# Find unique levels
+x.levels <- cbind(colnames(x),
+                  (as.data.frame(sapply(x,function(x) length(unique(x)))))
+)
+colnames(x.levels) <- c("var","levels")
+row.names(x.levels) <- NULL
+x.levels[order(-x.levels[,2]),]
+
+# get proportion of NA/missing data
+gg_miss_var(x, show_pct = T)
+gg_miss_which(x)
+
+# glimpse(x)
+# summary(x)
+
+# Fill in some missing values
+## I want to add a $Served column but this requires complete data on AgeWhenReceived
+x %>% 
+  select(Race, AgeWhenReceived) %>% 
+  na.omit() %>% 
+  ggplot(aes(x=AgeWhenReceived,fill=Race)) +
+  geom_density(aes(alpha=.5))
+
+### Calculate mean AWR for each Race and replace NA's with
+x %>% 
+  filter(Race=="Hispanic") %>% 
+  na.omit %>% 
+  summarise(meanRecd = round(mean(AgeWhenReceived),0))
+x <- x %>% 
+  mutate(AgeWhenReceived = replace(AgeWhenReceived,
+                                   is.na(AgeWhenReceived)&
+                                     Race=="Hispanic",27))
+
+x %>% 
+  filter(Race=="Black") %>% 
+  na.omit %>% 
+  summarise(meanRecd = round(mean(AgeWhenReceived),0))
+x <- x %>% 
+  mutate(AgeWhenReceived = replace(AgeWhenReceived,
+                                   is.na(AgeWhenReceived)&
+                                     Race=="Black",26))
+
+x %>% 
+  filter(Race=="White") %>% 
+  na.omit %>% 
+  summarise(meanRecd = round(mean(AgeWhenReceived),0))
+x <- x %>% 
+  mutate(AgeWhenReceived = replace(AgeWhenReceived,
+                                   is.na(AgeWhenReceived)&
+                                     Race=="White",31))
+## Now we can add a Served column
+x <- x %>% 
+  mutate(Served = Age-AgeWhenReceived)
+
+which(is.na(x$Served)) # verify no NA values
+
+nums <- which(is.na(x$NumberVictim))
+nums1 <- x[nums,]
+
+## White vs Black/Hispanic have somewhat differing values, fill in based on mean
+
 
 # EDA, focus on demographic
-y <- x %>%
-  select(Age,Race,AgeWhenReceived,EducationLevel,PreviousCrime) %>%
-  mutate(Served = Age-AgeWhenReceived) %>% 
-  mutate(Race=as.factor(Race))
-summary(y)
+x <- x %>% 
+  mutate(Served=Age-AgeWhenReceived)
+
+# y <- x %>%
+#   select(Age,Race,AgeWhenReceived,EducationLevel,PreviousCrime) %>%
+#   mutate(Served = Age-AgeWhenReceived) %>% 
+#   mutate(Race=as.factor(Race))
+# summary(y)
 
 ## Age of execution histogram
+# bins calculated using Freedman–Diaconis rule
+bw.Age <- diff(range(x$Age)) / (2 * IQR(x$Age) / length(x$Age)^(1/3))
 x %>% 
   ggplot(aes(x=Age))+
-  geom_histogram()+
+  geom_histogram(bins=bw.Age)+
   scale_x_continuous(limits=c(min(y$Age),max(y$Age)),
                      breaks=c(seq(20,70,5)))+
   ggtitle("Age of execution")
@@ -64,7 +130,7 @@ p2
 p2.1 <- x %>% 
   filter(Race != "Other") %>% 
   ggplot(aes(x=AgeWhenReceived,y=Race,fill=Race))+
-  stat_binline(scale=.9, bins=18)+
+  stat_binline(scale=.9, bins=bw.Age)+
   scale_x_continuous(limits=c(10,70),
                      breaks=c(seq(15,70,5)))+
   ggtitle("Age when received by race")+
@@ -91,6 +157,7 @@ p3 <- x %>%
 p3
 
 ## absolute frequency
+
 x %>% 
   filter(Race != "Other") %>% 
   mutate(Served = Age-AgeWhenReceived) %>% 
