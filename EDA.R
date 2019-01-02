@@ -38,7 +38,7 @@ x %>%
   ggplot(aes(x=AgeWhenReceived,fill=Race)) +
   geom_density(aes(alpha=.5))
 
-### Calculate mean AWR for each Race and replace NA's with
+### Calculate mean AWR for each Race and replace NA's with that
 x %>% 
   filter(Race=="Hispanic") %>% 
   na.omit %>% 
@@ -83,7 +83,7 @@ x <- x %>%
 
 # y <- x %>%
 #   select(Age,Race,AgeWhenReceived,EducationLevel,PreviousCrime) %>%
-#   mutate(Served = Age-AgeWhenReceived) %>% 
+#   mutate(Served = Age-AgeWhenReceived) %>%
 #   mutate(Race=as.factor(Race))
 # summary(y)
 
@@ -93,12 +93,12 @@ bw.Age <- diff(range(x$Age)) / (2 * IQR(x$Age) / length(x$Age)^(1/3))
 x %>% 
   ggplot(aes(x=Age))+
   geom_histogram(bins=bw.Age)+
-  scale_x_continuous(limits=c(min(y$Age),max(y$Age)),
+  scale_x_continuous(limits=c(min(x$Age),max(x$Age)),
                      breaks=c(seq(20,70,5)))+
   ggtitle("Age of execution")
 
 ## Segregate by race
-summary(y$Race)
+summary(x$Race)
 
 p1 <- x %>% 
   filter(Race != "Other") %>% 
