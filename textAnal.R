@@ -8,23 +8,36 @@ if(!require(wordcloud)) install.packages("wordcloud")
 library(wordcloud)
 if(!require(reshape2)) install.packages("reshape2")
 library(reshape2)
+if(!require(ggraph)) install.packages("ggraph")
+library(ggraph)
+# may need to install.packages("geforce")
+# linux may require sudo apt-get install libudunits2-dev
 
-setwd("C:/Users/e/Documents/R/inmate.last.words")
+# setwd("C:/Users/e/Documents/R/inmate.last.words")
+setwd("/home/e/R/inmate.last.words")
 
 # read data, prepare text for tidying
 x <- read_csv("data/Texas Last Statement - CSV.csv")
 y <- x$LastStatement
 y <- data_frame(y)
 
+# Modify stop_words slightly
+custom_stop_words <- 
+  bind_rows(stop_words,
+            data_frame(word = c("ya'll", 
+                                "y'all",
+                                "warden"),
+                       lexicon = "custom"))
+
 # tidy the text
 y.tidy <- y %>% 
   unnest_tokens(word,y) %>% 
-  anti_join(stop_words)
+  anti_join(custom_stop_words)
 
-# list of top used words, sorted
+# list of top 20 used words, sorted
 y.tidy %>% 
-  count(word, sort = TRUE)
-
+  count(word, sort = TRUE) %>% 
+  slice(1:20)
 
 # plot of above list of top used words
 y.tidy %>% 
@@ -41,12 +54,12 @@ pal <- brewer.pal(8,"Dark2")
 y.tidy %>% 
   count(word) %>% 
   with(wordcloud(word,n,
-                 max.words=100,
+                 max.words=80,
                  min.freq=20,
                  colors=pal,
                  random.order = F,
-                 random.color = F
-                 # scale=c(3,.3)
+                 random.color = F,
+                 scale=c(3,.5)
                  ))
 
 # Comparison wordcloud of top used words according to (bing) sentiment
@@ -224,7 +237,7 @@ library(ggraph)
 x.bigram.counts
 
 x.bigram.graph <- x.bigram.counts %>% 
-  filter(n>5) %>% 
+  filter(n>4) %>% 
   graph_from_data_frame()
 
 ggraph(x.bigram.graph, layout = "fr") +
