@@ -11,6 +11,8 @@ library(viridis)
 if(!require(gridExtra)) install.packages("gridExtra")
 library(gridExtra)
 
+# Fill in missing values as much as possible
+
 setwd("/home/e/R/inmate.last.words")
 # setwd("C:/Users/e/Documents/R/inmate.last.words")
 x <- read_csv("data/Texas Last Statement - CSV.csv")
@@ -31,7 +33,8 @@ gg_miss_which(x)
 # summary(x)
 
 # Fill in some missing values
-## I want to add a $Served column but this requires complete data on AgeWhenReceived
+## I want to add an x$Served column but this requires 
+##  complete data on AgeWhenReceived
 x %>% 
   select(Race, AgeWhenReceived) %>% 
   na.omit() %>% 
@@ -75,7 +78,6 @@ nums <- which(is.na(x$NumberVictim))
 nums1 <- x[nums,]
 
 ## White vs Black/Hispanic have somewhat differing values, fill in based on mean
-
 
 # EDA, focus on demographic
 x <- x %>% 
