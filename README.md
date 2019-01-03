@@ -23,3 +23,8 @@ The dataset consists of 545 observations with 21 variables. They are:
 - NumberVictim: Number of victims, numeric. 
 - WhiteVictim, HispanicVictim, BlackVictim, VictimOtherRace. FemaleVictim, MaleVictim: Number of victims with specified demographic features, numeric. 
 - LastStatement: Last statement of offender, character.
+
+# Possible analyses
+ * Sentiment differences between inmates with more victims
+ * Differences in sentiment between races
+ * Sentiment of inmate with most codefendents
