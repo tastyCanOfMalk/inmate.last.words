@@ -28,3 +28,4 @@ The dataset consists of 545 observations with 21 variables. They are:
  * Sentiment differences between inmates with more victims
  * Differences in sentiment between races
  * Sentiment of inmate with most codefendents
+ * penal theory? violent behaviour tends to stop at 27 with the decline in testosterone?
