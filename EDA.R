@@ -41,6 +41,7 @@ x %>%
   ggplot(aes(x=AgeWhenReceived,fill=Race)) +
   geom_density(aes(alpha=.5))
 
+
 ### Calculate mean AWR for each Race and replace NA's with that
 x %>% 
   filter(Race=="Hispanic") %>% 
