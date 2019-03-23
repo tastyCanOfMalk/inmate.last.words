@@ -17,8 +17,7 @@ x <- read_csv("data/Texas Last Statement - CSV.csv")
 
 # Find unique levels
 x.levels <- cbind(colnames(x),
-                  (as.data.frame(sapply(x,function(x) length(unique(x)))))
-)
+                  (as.data.frame(sapply(x,function(x) length(unique(x))))))
 colnames(x.levels) <- c("var","levels")
 row.names(x.levels) <- NULL
 x.levels[order(-x.levels[,2]),]

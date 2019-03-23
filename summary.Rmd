@@ -1,0 +1,73 @@
+---
+title: 'Last words of Texas death row inmates'
+subtitle: 'An exploratory text analysis'
+author: 'Edward Yu'
+date: '2019-03-23'
+output:
+  html_document:
+      theme: flatly
+      highlight: tango
+      toc: true
+      toc_float:
+        collapsed: true
+      toc_depth: 3
+      df_print: paged
+      code_folding: show
+      # fig_width: 7
+      # fig_height: 6
+      # fig_caption: true
+      # citation_package: natbib
+# bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo    = TRUE,
+                      error   = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+if(!require(tidyverse)) install.packages("tidyverse")
+library(tidyverse)
+if(!require(naniar)) install.packages("naniar")
+library(naniar) # gg_miss
+if(!require(ggridges)) install.packages("ggridges")
+library(ggridges)
+if(!require(viridis)) install.packages("viridis")
+library(viridis)
+if(!require(gridExtra)) install.packages("gridExtra")
+library(gridExtra)
+
+# clear history
+rm(list = ls())
+
+# setwd("I:/Code-CAD/R/bakery.sales")
+setwd("D:/Code/R/inmate.last.words")
+```
+
+# Introduction
+I found this data via a Kaggle post: https://www.kaggle.com/mykhe1097/last-words-of-death-row-inmates. The original data was taken from: https://www.tdcj.texas.gov/death_row/dr_executed_offenders.html.  
+
+The title alone merits more than a passing glance. Moving forward I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
+
+# Import
+In general my beginning process is very similar from project to project: we import the data, `glimpse` it to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variables.    
+
+
+
+```{r}
+# import
+x <- read_csv("data/Texas Last Statement - CSV.csv")
+
+glimpse(x)
+
+# Find unique levels
+x.levels <- cbind(colnames(x),
+                  (as.data.frame(sapply(x,function(x) length(unique(x))))))
+colnames(x.levels) <- c("var","levels")
+row.names(x.levels) <- NULL
+x.levels[order(-x.levels[,2]),]
+
+# % missingness using naniar package
+gg_miss_var(x, show_pct = T)
+```
+
