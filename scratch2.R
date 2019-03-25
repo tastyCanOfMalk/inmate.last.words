@@ -1,4 +1,8 @@
 # corrplot to start with?
+if(!require(GGally)) install.packages("GGally")
+library(GGally) # impute missing data
+
+
 glimpse(x)
 x.pairs <- x %>% 
   select(Age,Race,AgeWhenReceived,EducationLevel,NativeCounty,

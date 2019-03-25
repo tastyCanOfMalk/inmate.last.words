@@ -30,6 +30,8 @@ if(!require(tidyverse)) install.packages("tidyverse")
 library(tidyverse)
 if(!require(naniar)) install.packages("naniar")
 library(naniar) # gg_miss
+if(!require(mice)) install.packages("mice")
+library(mice) # gg_miss
 if(!require(ggridges)) install.packages("ggridges")
 library(ggridges)
 if(!require(viridis)) install.packages("viridis")
@@ -40,8 +42,8 @@ library(gridExtra)
 # clear history
 rm(list = ls())
 
-# setwd("I:/Code-CAD/R/bakery.sales")
-setwd("D:/Code/R/inmate.last.words")
+setwd("I:/Code-CAD/R/inmate.last.words")
+# setwd("D:/Code/R/inmate.last.words")
 ```
 
 # Introduction
@@ -50,15 +52,16 @@ I found this data via a Kaggle post: https://www.kaggle.com/mykhe1097/last-words
 The title alone merits more than a passing glance. Moving forward I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
 
 # Import
-In general my beginning process is very similar from project to project: we import the data, `glimpse` it to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variables.    
+In general, my initial process is very similar from project to project: import the data, `glimpse` and `summary` to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variable. I find that even if this information isn't specifically useful in every case it gives a nice overview of the data.  
 
-
+At this point I can already tell that I'm going to drop the more specific `HispanicVictim` or `BlackVictim` variables in favor of the more generalized `NumberVictim`. The `AgeWhenReceived` variable also sounds like it could be an interesting variable to work with paired with `Race` or `Age`.  
 
 ```{r}
 # import
 x <- read_csv("data/Texas Last Statement - CSV.csv")
 
 glimpse(x)
+summary(x)
 
 # Find unique levels
 x.levels <- cbind(colnames(x),
@@ -69,5 +72,85 @@ x.levels[order(-x.levels[,2]),]
 
 # % missingness using naniar package
 gg_miss_var(x, show_pct = T)
+```
+
+# Impute
+As mentioned before, I'm only interested in some of the data, no use imputing data I'm not going to analyze. I'll keep:  
+
+  1. First name
+  2. Last name
+  3. Race
+  4. Education level
+  5. Previous crime commited?
+  6. Number of victims
+  7. Number of female victims
+  8. Number of male victims
+  9. Age when received
+  10. Age executed
+  11. Codefendants
+  12. Last statement
+
+My first analyses used simple median or mean values to replace NA's. This time around I've become interested in a package called `mice`, which stands for Multivariate Imputation by Chained Equations. As my familiarity with the package is limitesd at this time, I followed the following reference quite closely: https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/.  
+
+First, a couple columns are renamed, columns of interest are then selected.  
+The imputation process is performed on only numeric data, at first, so that visualization is smoother. 
+```{r results='hide'}
+# rename columns, select columns of interest
+x1 <- x %>% 
+  mutate(AWR = AgeWhenReceived) %>% 
+  mutate(AgeExec = Age) %>% 
+  select(FirstName, 
+         LastName, 
+         Race, 
+         EducationLevel,
+         PreviousCrime, 
+         NumberVictim, 
+         FemaleVictim, 
+         MaleVictim, 
+         AWR,
+         AgeExec, 
+         Codefendants, 
+         LastStatement)
+
+# remove columns with characters for stripplot() visualization
+rem <- c(1,2,3,12)
+
+# imputation process using pmm, 20 iterations
+tempData <- mice(x1[-rem],
+                 maxit=20,
+                 meth='pmm',
+                 seed=1)
+
+# compare distribution of actual values with imputed values; red=imputed
+xyplot(tempData,
+       AWR~
+         PreviousCrime+
+         EducationLevel+
+         FemaleVictim+
+         MaleVictim+
+         NumberVictim+
+         Codefendants,
+       pch=18,
+       cex=1)
+
+# can also compare using density plot; red=imputed
+densityplot(tempData)
+
+# and stripplot
+stripplot(tempData,pch=20,cex=1)
+
+# rerun imputation on complete dataset and compare to original
+tempData <- mice(x1,m=5,maxit=50,meth='pmm')
+
+# replace missing values with imputed values using first dataset
+completedData <- complete(tempData,1)
+```
+
+Although we already saw above that imputed data fell within reasonable ranges, checking the `summary` data of the original dataset and comparing to the new, imputed dataset gives a little peace of mind.  
+
+```{r}
+# comparing the completed data to the original again shows imputed data makes sense
+summary(completedData)[,-rem]
+summary(x1)[,-rem]
 ```
 
