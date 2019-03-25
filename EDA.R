@@ -10,6 +10,8 @@ if(!require(viridis)) install.packages("viridis")
 library(viridis)
 if(!require(gridExtra)) install.packages("gridExtra")
 library(gridExtra)
+if(!require(data.table)) install.packages("data.table")
+library(data.table)
 
 setwd("/home/e/R/inmate.last.words")
 # setwd("C:/Users/e/Documents/R/inmate.last.words")
@@ -97,7 +99,7 @@ x %>%
   ggtitle("Age of execution")
 
 ## Segregate by race
-summary(x$Race)
+summary(as.factor(x$Race))
 
 p1 <- x %>% 
   filter(Race != "Other") %>% 
@@ -108,7 +110,7 @@ p1 <- x %>%
   ggtitle("Age of execution by race")+
   xlab("Age when executed")+
   theme(legend.position="none")+
-  scale_fill_viridis(option="E")
+  scale_fill_viridis(option="D")
 p1
 
 ## Are whites executed at a later age?
@@ -122,7 +124,7 @@ p2 <- x %>%
   ggtitle("Age when received by race")+
   xlab("Age when received")+
   theme(legend.position="none")+
-  scale_fill_viridis(option="E")
+  scale_fill_viridis(option="D")
 p2
 
 # stat binline version
@@ -186,11 +188,11 @@ x %>%
   
   
   
-y.a <- setDT(y)[, .N, by = .(Age)][order(-N)]
+y.a <- setDT(x)[, .N, by = .(Age)][order(-N)]
 plot(y.a)
 
 
-ggplot(y,aes(x=Age,fill=Race))+geom_histogram()+facet_wrap(Race~.)
+ggplot(x,aes(x=Age,fill=Race))+geom_histogram()+facet_wrap(Race~.)
 
-ggplot(y,aes(x=Served,fill=Race))+geom_histogram()+facet_wrap(Race~.)
-ggplot(y,aes(x=Age,y=Race,fill=Race))+geom_density_ridges(aes(alpha=.5))
+ggplot(x,aes(x=Served,fill=Race))+geom_histogram()+facet_wrap(Race~.)
+ggplot(x,aes(x=Age,y=Race,fill=Race))+geom_density_ridges(aes(alpha=.5))
