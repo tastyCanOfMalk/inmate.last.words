@@ -98,8 +98,9 @@ summary(xCom$Served)
 which.min(xCom$Served)
 xCom[266,]
 
+# google search reveals execution at 47
 # change AgeExec and Served for 266
-xCom[266,]$AgeExec <- 46
+xCom[266,]$AgeExec <- 47
 xCom[266,]$Served <- 10
 
 ################ EDA
@@ -160,6 +161,8 @@ p2 <- xCom %>%
   scale_fill_viridis(option="D")
 p2
 
+grid.arrange(p1,p2,nrow=1)
+
 # number of victims?
 hist(xCom$NumberVictim)
 hist(xCom$EducationLevel)
@@ -169,6 +172,7 @@ hist(xCom$MaleVictim)
 
 # does time served change as number of victims change?
 xCom %>% 
+  filter(Served > 0 & Served < 6) %>% 
   ggplot(aes(x=Served))+
   geom_histogram(stat="count")+
   facet_wrap(NumberVictim~.,nrow=3)+
@@ -176,6 +180,7 @@ xCom %>%
 
 # education level vs number of victims
 e1 <- xCom %>% 
+  filter(NumberVictim > 0 & NumberVictim < 5) %>%
   ggplot(aes(x=EducationLevel))+
   geom_histogram(stat="count")+
   facet_wrap(NumberVictim~.,nrow=2)+
@@ -192,7 +197,8 @@ grid.arrange(e1,e2,nrow=1)
 
 
 xCom %>% 
-filter(Race != "Other") %>% 
+  filter(Race != "Other") %>% 
+  filter(NumberVictim > 0 & NumberVictim < 5) %>%
   ggplot(aes(x=AgeExec,y=Race,fill=..density..))+
   geom_density_ridges_gradient(scale=1.5,rel_min_height=.01)+
   scale_x_continuous(limits=c(10,70),
@@ -201,11 +207,13 @@ filter(Race != "Other") %>%
 
 xCom %>% 
   filter(Race!="Other") %>% 
+  filter(NumberVictim > 0 & NumberVictim < 5) %>%
   ggplot(aes(x=as.factor(Race),fill=Race))+
   geom_histogram(stat="count")+
   facet_wrap(NumberVictim~.)
 
 xCom %>% 
+  filter(NumberVictim > 0 & NumberVictim < 5) %>%
   ggplot(aes(x=Served))+
   geom_histogram(stat="count")+
   facet_wrap(NumberVictim~.)
