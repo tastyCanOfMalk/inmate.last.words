@@ -42,8 +42,8 @@ library(gridExtra)
 # clear history
 rm(list = ls())
 
-setwd("I:/Code-CAD/R/inmate.last.words")
-# setwd("D:/Code/R/inmate.last.words")
+# setwd("I:/Code-CAD/R/inmate.last.words")
+setwd("D:/Code/R/inmate.last.words")
 ```
 
 # Introduction
@@ -168,7 +168,7 @@ If we track this value down we can conclude that either the Age when received or
 ```{r}
 # add time served column
 xCom <- xCom %>% 
-  mutate(served = AgeExec-AWR)
+  mutate(Served = AgeExec-AWR)
 
 # have an odd -1 years served
 summary(xCom$Served)

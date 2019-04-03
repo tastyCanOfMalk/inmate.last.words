@@ -171,26 +171,65 @@ hist(xCom$FemaleVictim)
 hist(xCom$MaleVictim)
 
 # does time served change as number of victims change?
-xCom %>% 
-  filter(Served > 0 & Served < 6) %>% 
-  ggplot(aes(x=Served))+
+p3 <- xCom %>% 
+  # filter(NumberVictim > 0 & NumberVictim < 6) %>% 
+  ggplot(aes(x=Served,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
-  facet_wrap(NumberVictim~.,nrow=3)+
-  ggtitle("Years served faceted by number of victims")
+  # facet_wrap(NumberVictim~.,nrow=3)+
+  ggtitle("Histogram years served, fill=NumberVictim")+
+  theme(legend.position = "none")+
+  scale_fill_brewer(type="qual",palette=3)
+
+# try boxplot instead with numbervictims = box
+p4 <- xCom %>% 
+  as_tibble() %>% 
+  select(Served, NumberVictim) %>% 
+  ggplot(aes(y=Served,x=as.factor(NumberVictim)))+
+  geom_boxplot(outlier.color = NA)+
+  coord_flip()+
+  geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
+  theme(legend.position = "none")+
+  ggtitle("Number of victims vs Served")+
+  scale_color_brewer(type="qual",palette=3)
+
+grid.arrange(p3,p4,nrow=1)
+
+# CART predicting years served based on education, victims, prevCrime, etc
+# or AWR ~ .
 
 # education level vs number of victims
+# e1 <- xCom %>% 
+#   filter(NumberVictim > 0 & NumberVictim < 6) %>%
+#   ggplot(aes(x=EducationLevel))+
+#   geom_histogram(stat="count")+
+#   facet_wrap(NumberVictim~.,nrow=2)+
+#   ggtitle("Education level faceted by number of victims")
+
 e1 <- xCom %>% 
-  filter(NumberVictim > 0 & NumberVictim < 5) %>%
-  ggplot(aes(x=EducationLevel))+
+  # filter(NumberVictim > 0 & NumberVictim < 6) %>%
+  ggplot(aes(x=EducationLevel,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
-  facet_wrap(NumberVictim~.,nrow=2)+
-  ggtitle("Education level faceted by number of victims")
+  # facet_wrap(NumberVictim~.,nrow=2)+
+  ggtitle("Education level faceted by number of victims")+
+  scale_fill_brewer(type="qual",palette=3)+
+  theme(legend.position = "none")
 
 e2 <- xCom %>% 
-  ggplot(aes(x=EducationLevel))+
-  geom_histogram(stat="count")+
-  scale_x_continuous(breaks=seq(1,16,1))+
-  ggtitle("Histogram of education level")
+  # as_tibble() %>% 
+  # select(Served, NumberVictim) %>% 
+  ggplot(aes(y=EducationLevel,x=as.factor(NumberVictim)))+
+  geom_boxplot(outlier.color = NA)+
+  coord_flip()+
+  geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
+  theme(legend.position = "none")+
+  ggtitle("Number of victims vs Served")+
+  scale_color_brewer(type="qual",palette=3)
+
+# e2 <- xCom %>% 
+#   ggplot(aes(x=EducationLevel))+
+#   geom_histogram(stat="count")+
+#   scale_x_continuous(breaks=seq(1,16,1))+
+#   ggtitle("Histogram of education level")
 
 grid.arrange(e1,e2,nrow=1)
 
@@ -237,3 +276,5 @@ xCom %>%
   ggplot(aes(x=AWR))+
   geom_histogram(stat="count")+
   facet_wrap(EducationLevel~.)
+
+# can we make preditions on education level versus last words?
