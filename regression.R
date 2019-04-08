@@ -15,6 +15,7 @@ xPart <- xCom %>%
          AgeExec,
          Codefendants,
          Served) %>% 
+  filter(Race != "Other") %>% 
   mutate(Race = as.factor(Race)) %>% 
   mutate(EducationLevel = as.factor(EducationLevel)) %>%
   mutate(PreviousCrime = as.factor(PreviousCrime))

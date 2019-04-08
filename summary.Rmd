@@ -233,7 +233,6 @@ p1 <- xCom %>%
   xlab("Age when received")+
   theme(legend.position="none")+
   scale_fill_viridis(option="D")
-p1
 
 # Age executed vs race
 p2 <- xCom %>% 
@@ -246,7 +245,8 @@ p2 <- xCom %>%
   xlab("Age when executed")+
   theme(legend.position="none")+
   scale_fill_viridis(option="D")
-p2
+
+grid.arrange(p1,p2,nrow=1)
 ```
 
 ## Number of victims vs
@@ -254,29 +254,59 @@ Does anything change when the number of victims increases? It's a bit difficult 
 
 ```{r}
 # does time served change as number of victims change?
-xCom %>% 
-  ggplot(aes(x=Served))+
+p3 <- xCom %>% 
+  # filter(NumberVictim > 0 & NumberVictim < 6) %>% 
+  ggplot(aes(x=Served,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
-  facet_wrap(NumberVictim~.,nrow=3)+
-  ggtitle("Years served faceted by number of victims")
+  # facet_wrap(NumberVictim~.,nrow=3)+
+  ggtitle("Histogram of years served, fill = NumberVictim")+
+  theme(legend.position = "none")+
+  scale_fill_brewer(type="qual",palette=3)
+
+# try boxplot instead with numbervictims = box
+p4 <- xCom %>% 
+  as_tibble() %>% 
+  select(Served, NumberVictim) %>% 
+  ggplot(aes(y=Served,x=as.factor(NumberVictim)))+
+  geom_boxplot(outlier.color = NA)+
+  coord_flip()+
+  geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
+  theme(legend.position = "none")+
+  ggtitle("Number of victims vs Served")+
+  scale_color_brewer(type="qual",palette=3)+
+  xlab("NumberVictim")
+
+grid.arrange(p3,p4,nrow=1)
+
 ```
 
-Education level is also relatively constant throughout the range of inmates. In the standard histogram we see a huge dropoff after education level 12 (assumedly High School, grade 12). In fact, our largest peaks occur between grades 9-12, indicating that not completing high school has a potentially huge impact in whether a crime is committed. 
+Education level is also relatively constant throughout the range of inmates. In the standard histogram we see a huge dropoff after education level 12 (assumedly High School, grade 12). In fact, our largest peaks occur between grades 9-12, indicating that not completing high school has a potentially significant impact on becoming a deathrow inmate.  
+
+When comparing the number of victims to education level, however, we do not see much of a relationship.  
 
 ```{r}
 # education level vs number of victims
 e1 <- xCom %>% 
-  ggplot(aes(x=EducationLevel))+
+  # filter(NumberVictim > 0 & NumberVictim < 6) %>%
+  ggplot(aes(x=EducationLevel,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
-  facet_wrap(NumberVictim~.,nrow=2)+
-  ggtitle("Education level faceted by number of victims")
+  # facet_wrap(NumberVictim~.,nrow=2)+
+  ggtitle("Histogram of education level, fill = NumberVictim")+
+  scale_fill_brewer(type="qual",palette=3)+
+  theme(legend.position = "none")
 
 e2 <- xCom %>% 
-  ggplot(aes(x=EducationLevel))+
-  geom_histogram(stat="count")+
-  ggtitle("Histogram of education level")
+  # as_tibble() %>% 
+  # select(Served, NumberVictim) %>% 
+  ggplot(aes(y=EducationLevel,x=as.factor(NumberVictim)))+
+  geom_boxplot(outlier.color = NA)+
+  coord_flip()+
+  geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
+  theme(legend.position = "none")+
+  ggtitle("Number of victims vs Served")+
+  scale_color_brewer(type="qual",palette=3)+
+  xlab("NumberVictim")
 
 grid.arrange(e1,e2,nrow=1)
 ```
 
-We might conclude that those with a grade 9-11 education level could be considered high school dropouts, while those with an education level of 12 had a terminal education level of high school. We see that high school dropouts tend to have a slightly younger distribution

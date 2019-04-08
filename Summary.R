@@ -176,7 +176,7 @@ p3 <- xCom %>%
   ggplot(aes(x=Served,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
   # facet_wrap(NumberVictim~.,nrow=3)+
-  ggtitle("Histogram years served, fill=NumberVictim")+
+  ggtitle("Histogram of years served, fill = NumberVictim")+
   theme(legend.position = "none")+
   scale_fill_brewer(type="qual",palette=3)
 
@@ -190,7 +190,8 @@ p4 <- xCom %>%
   geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
   theme(legend.position = "none")+
   ggtitle("Number of victims vs Served")+
-  scale_color_brewer(type="qual",palette=3)
+  scale_color_brewer(type="qual",palette=3)+
+  xlab("NumberVictim")
 
 grid.arrange(p3,p4,nrow=1)
 
@@ -210,7 +211,7 @@ e1 <- xCom %>%
   ggplot(aes(x=EducationLevel,fill=as.factor(NumberVictim)))+
   geom_histogram(stat="count")+
   # facet_wrap(NumberVictim~.,nrow=2)+
-  ggtitle("Education level faceted by number of victims")+
+  ggtitle("Histogram of education level, fill = NumberVictim")+
   scale_fill_brewer(type="qual",palette=3)+
   theme(legend.position = "none")
 
@@ -223,8 +224,8 @@ e2 <- xCom %>%
   geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
   theme(legend.position = "none")+
   ggtitle("Number of victims vs Served")+
-  scale_color_brewer(type="qual",palette=3)
-
+  scale_color_brewer(type="qual",palette=3)+
+  xlab("NumberVictim")
 # e2 <- xCom %>% 
 #   ggplot(aes(x=EducationLevel))+
 #   geom_histogram(stat="count")+
@@ -232,8 +233,6 @@ e2 <- xCom %>%
 #   ggtitle("Histogram of education level")
 
 grid.arrange(e1,e2,nrow=1)
-
-
 
 xCom %>% 
   filter(Race != "Other") %>% 
@@ -278,3 +277,4 @@ xCom %>%
   facet_wrap(EducationLevel~.)
 
 # can we make preditions on education level versus last words?
+
