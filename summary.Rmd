@@ -49,12 +49,10 @@ setwd("D:/Code/R/inmate.last.words")
 # Introduction
 I found this data via a Kaggle post: https://www.kaggle.com/mykhe1097/last-words-of-death-row-inmates. The original data was taken from: https://www.tdcj.texas.gov/death_row/dr_executed_offenders.html.  
 
-The title alone merits more than a passing glance. Moving forward I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
+The title alone was interesting enough to merit more than a passing glance. I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
 
 # Import
-In general, my initial process is very similar from project to project: import the data, `glimpse` and `summary` to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variable. I find that even if this information isn't specifically useful in every case it gives a nice overview of the data.  
-
-At this point I can already tell that I'm going to drop the more specific `HispanicVictim` or `BlackVictim` variables in favor of the more generalized `NumberVictim`. The `AgeWhenReceived` variable also sounds like it could be an interesting variable to work with paired with `Race` or `Age`.  
+In general, my initial process is very similar from project to project: import the data, use `glimpse` and `summary` to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variable. I find that even if this information isn't specifically useful in every case it gives a nice overview of the data.  
 
 ```{r}
 # import
@@ -74,8 +72,10 @@ x.levels[order(-x.levels[,2]),]
 gg_miss_var(x, show_pct = T)
 ```
 
+At this point I can already tell that I'm going to drop the more specific `HispanicVictim` or `BlackVictim` variables in favor of the more generalized `NumberVictim` variable. The `AgeWhenReceived` variable also sounds like it could be an interesting variable to work with paired with `Race` or `Age`. 
+
 # Impute
-As mentioned before, I'm only interested in some of the data, no use imputing data I'm not going to analyze. I'll keep:  
+I'll start by listing all the variables I might be interested in working with.  
 
   1. First name
   2. Last name
@@ -90,10 +90,12 @@ As mentioned before, I'm only interested in some of the data, no use imputing da
   11. Codefendants
   12. Last statement
 
-My first analyses used simple median or mean values to replace NA's. This time around I've become interested in a package called `mice`, which stands for Multivariate Imputation by Chained Equations. As my familiarity with the package is limitesd at this time, I followed the following reference quite closely: https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/.  
+Generally we only impute if 5% or less of the data is missing. In this case, `EducationLevel`, `PreviousCrime`, `Codefendants`, are all missing more than 5% of their data. In this case, and for the sake of exploration, I will bend the rule and attempt imputation regardless.  
 
-First, a couple columns are renamed, columns of interest are then selected.  
-The imputation process is performed on only numeric data, at first, so that visualization is smoother. 
+My first analyses used simple median or mean values to replace NA's. This time around I've become interested in a package called `mice`, which stands for Multivariate Imputation by Chained Equations. As my familiarity with the package is limited at this time, I followed the following reference quite closely: https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/.  
+
+The visualizations that follow show the imputed (red) values falling well within actual (blue) values, indicating the imputation was reasonable.  
+
 ```{r results='hide'}
 # rename columns, select columns of interest
 x1 <- x %>% 
@@ -117,6 +119,7 @@ rem <- c(1,2,3,12)
 
 # imputation process using pmm, 20 iterations
 tempData <- mice(x1[-rem],
+                 m=1,
                  maxit=20,
                  meth='pmm',
                  seed=1)
@@ -140,13 +143,13 @@ densityplot(tempData)
 stripplot(tempData,pch=20,cex=1)
 
 # rerun imputation on complete dataset and compare to original
-tempData <- mice(x1,m=5,maxit=50,meth='pmm')
+tempData <- mice(x1,m=1,maxit=50,meth='pmm',seed=1)
 
 # replace missing values with imputed values using first dataset
 xCom <- complete(tempData,1)
 ```
 
-Although we already saw above that imputed data fell within reasonable ranges, checking the `summary` data of the original dataset and comparing to the new, imputed dataset gives a little peace of mind.  
+Checking the `summary` data of the original dataset and comparing to the new, imputed dataset confirms that our imputed data falls within the distribution of our original data.  
 
 ```{r}
 # comparing the completed data to the original again shows imputed data makes sense
@@ -155,7 +158,7 @@ summary(x1)[,-rem]
 ```
 
 # EDA
-We're ready to do some exploratory data analysis at this point. What I'm interested are probably the most obvious things:
+We're ready to do some exploratory data analysis at this point. What I'm interested in are probably cliche points of analysis but given the variables presented they seem to stand out.  
 
   * Age received vs race
 
