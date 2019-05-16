@@ -68,3 +68,49 @@ summary(x.hispa$Codefendants)
 # be a waste of time as 1.4 defendants would be the same as 0.8
 # median or mean?
 # use tree?
+
+
+# race vs median AWR
+x.med.awr <- xCom %>% 
+  filter(Race != "Other") %>% 
+  group_by(Race) %>% 
+  summarise(median(AWR))
+
+# race vs median AgeExecuted
+x.med.awe <- xCom %>% 
+  filter(Race != "Other") %>% 
+  group_by(Race) %>% 
+  summarise(median(AWR))
+  summarise(median(AgeExec))
+
+rec.exec <- xCom %>% 
+  filter(Race != "Other") %>% 
+  group_by(Race) %>% 
+  summarise(AWR=median(AWR),AgeExec=median(AgeExec)) %>% 
+  mutate(Served = AgeExec-AWR)
+
+melt(rec.exec) %>% 
+  ggplot(aes(x=Race,y=value))+
+  geom_boxplot()+
+  coord_flip()
+
+
+xCom %>% 
+  filter(Race != "Other") %>% 
+  group_by(Race) %>%
+  select(AgeExec,AWR) %>% 
+  mutate(Served = AgeExec-AWR) %>% 
+  ggplot(aes(x=as.factor(Race),y=AWR))+
+  geom_boxplot()+
+  geom_jitter(shape=16,position=position_jitter(.1),alpha=.2,aes(color=Race))+
+  coord_flip()
+
+tt <- xCom %>% 
+  filter(Race != "Other") %>% 
+  group_by(Race) %>%
+  select(AgeExec,AWR) %>% 
+  mutate(Served = AgeExec-AWR)
+
+tt[1:20,4]
+
+
