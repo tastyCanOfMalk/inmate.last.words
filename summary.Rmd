@@ -157,17 +157,9 @@ summary(xCom)[,-rem]
 summary(x1)[,-rem]
 ```
 
-# EDA
-We're ready to do some exploratory data analysis at this point. What I'm interested in are probably cliche points of analysis but given the variables presented they seem to stand out.  
+# Time served measurement
+I wanted to add a time served, or `Served` measurement. Upon doing this an error in the data presented itself plainly in the `summary` measure which reporeted a value of -1.  
 
-  * Age received vs race
-
-## Time served measurement
-Before going too far I want to add a time served, or `Served` measurement. Upon doing this an error in the data presents itself pretty plainly in the `summary` measure reporting a value of -1.  
-
-If we track this value down we can conclude that either the Age when received or the Age when executed measures are incorrect. Since the median value of our newly created time served variable is equal to 10, it's safe to assume that either our `AWR` should be 27, rather than 37; or `AgeExec` should be 46, rather than 36.  
-
-  
 ```{r}
 # add time served column
 xCom <- xCom %>% 
@@ -181,18 +173,29 @@ which.min(xCom$Served)
 xCom[266,]
 ```
 
+If we track this value down we can conclude that either the Age when received or the Age when executed measures are incorrect. Since the median value of our newly created time served variable is equal to 10, it's safe to assume that either our `AWR` should be 27, rather than 37; or `AgeExec` should be 46, rather than 36.  
+
 It turns out that a simple internet search of the inmate's name leads us to the actual age of execution being 47 rather than 37: http://www.clarkprosecutor.org/html/death/US/walker796.htm.
+
 ```{r}
 # change AgeExec and Served for 266
 xCom[266,]$AgeExec <- 47
 xCom[266,]$Served <- 10
 ```
 
-## Race vs time
-Does race play a part in how many years are served leading up to the execution date? Based on summary data it seems that time served is roughly the same for all races. We put the relative and absolute graphs together to show that whites and blacks were executed more than hispanics.
+# EDA
+We're ready to do some exploratory data analysis at this point. What I'm interested in are probably cliche points of analysis but given the variables presented they seem to stand out.  
+
+  * Race vs Time served
+  * Race vs Age when received
+
+## Race vs time served
+Does race play a part in how many years are served leading up to the execution date? Based on summary data it seems that time served is roughly the same for all races. We can plot density and histogram plots to show the relative and absolute differences in time served between races.  
+
+Note there were 2 races classified as `Other`, which were removed.  
 
 ```{r}
-# check races, remove other when plotting
+# check races, remove 'other' when plotting
 summary(as.factor(x$Race))
 
 xCom %>% 
@@ -216,14 +219,18 @@ g2 <- xCom %>%
 grid.arrange(g1,g2,nrow=1)
 ```
 
-Though time served is relatively constant between races, we can definitely see some differences regarding when inmates were received. In general, whites are received roughly 4 years later when compared to blacks or hispanics.  
+We see clearly, based on the density plot, that time served between the different races represented are very much similar. When we look at the histogram we do notice there are far fewer hispanics and appear to be slightly more whites in the population.
+
+## Race vs age when received/executed
+What can we discover about when the inmates were first received and how race impacts this?  Along the same vein, does age of execution remain similar between races?  
 
 ```{r}
-# race vs median AWR
+# Age received, executed, served by race
 xCom %>% 
   filter(Race != "Other") %>% 
   group_by(Race) %>% 
-  summarise(median(AWR))
+  summarise(AWR=median(AWR),AgeExec=median(AgeExec)) %>% 
+  mutate(Served = AgeExec-AWR)
 
 # Age received vs race
 p1 <- xCom %>% 
@@ -251,6 +258,8 @@ p2 <- xCom %>%
 
 grid.arrange(p1,p2,nrow=1)
 ```
+
+
 
 ## Number of victims vs
 Does anything change when the number of victims increases? It's a bit difficult to make concrete conclusions based on such little data. We can see pretty quickly that most inmates had a single victim. Time served does not seem to fluctuate much based solely on the number of victims: the median seems to stay within the 10 year range we saw before.
