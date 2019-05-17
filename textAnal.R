@@ -17,7 +17,8 @@ library(ggraph)
 setwd("/home/e/R/inmate.last.words")
 
 # read data, prepare text for tidying
-x <- read_csv("data/Texas Last Statement - CSV.csv")
+x <- read_csv("data/Texas Last Statement - CSV.csv") %>% 
+  filter(Race != "Other")
 y <- x$LastStatement
 y <- data_frame(y)
 
@@ -119,7 +120,7 @@ x.5 <- x.4 %>%
          `term frequency` =n/total)
 x.5 %>% 
   ggplot(aes(rank,`term frequency`,color=Race))+
-  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  geom_line(size = 1.1, alpha = 0.8, show.legend = TRUE) + 
   scale_x_log10() +
   scale_y_log10()
 
@@ -133,7 +134,7 @@ x.6 %>%
   arrange(desc(tf_idf))
 
 x.6 %>% 
-  filter(Race!="Other") %>% 
+  # filter(Race!="Other") %>% 
   arrange(desc(tf_idf)) %>% 
   mutate(word=factor(word,levels=rev(unique(word)))) %>% 
   group_by(Race) %>% 
