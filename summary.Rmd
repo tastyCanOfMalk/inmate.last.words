@@ -38,6 +38,8 @@ if(!require(viridis)) install.packages("viridis")
 library(viridis)
 if(!require(gridExtra)) install.packages("gridExtra")
 library(gridExtra)
+if(!require(ggalt)) install.packages("ggalt")
+library(ggalt)
 
 # clear history
 rm(list = ls())
@@ -219,7 +221,7 @@ g2 <- xCom %>%
 grid.arrange(g1,g2,nrow=1)
 ```
 
-We see clearly, based on the density plot, that time served between the different races represented are very much similar. When we look at the histogram we do notice there are far fewer hispanics and appear to be slightly more whites in the population.
+We see clearly, based on the density plot, that time served between the different races represented are very similar. When we look at the histogram we do notice there are far fewer hispanics and appear to be slightly more whites in this population.
 
 ## Race vs age when received/executed
 What can we discover about when the inmates were first received and how race impacts this?  Along the same vein, does age of execution remain similar between races?  
@@ -229,37 +231,47 @@ What can we discover about when the inmates were first received and how race imp
 xCom %>% 
   filter(Race != "Other") %>% 
   group_by(Race) %>% 
-  summarise(AWR=median(AWR),AgeExec=median(AgeExec)) %>% 
-  mutate(Served = AgeExec-AWR)
+  summarise(AWR=median(AWR),
+            AgeExec=median(AgeExec),
+            Served=median(Served))
 
-# Age received vs race
-p1 <- xCom %>% 
+# dumbell summary
+df.db <- xCom %>% 
+  filter(Race != 'Other') %>% 
+  group_by(Race) %>% 
+  summarise(AWR=median(AWR),
+            AgeExec=median(AgeExec),
+            Served=median(Served))
+
+df.db %>% 
+  ggplot()+
+  # geom_segment(aes(y=Race,yend=Race,x=0,xend=1),color="Red",size=.15)+
+  geom_dumbbell(aes(y=Race, x=AWR, xend=AgeExec),
+                size=5, 
+                color="#e3e2e1",
+                colour_x = "#5b8124", 
+                colour_xend = "#bad744")+
+  xlab("Age")+
+  theme_bw()
+
+# detailed boxplots of all stats
+df <- xCom %>% 
   filter(Race != "Other") %>% 
-  ggplot(aes(x=AWR,y=Race,fill=..density..))+
-  geom_density_ridges_gradient(scale=1.5,rel_min_height=.01)+
-  scale_x_continuous(limits=c(10,70),
-                     breaks=c(seq(15,70,5)))+
-  ggtitle("Age when received by race")+
-  xlab("Age when received")+
-  theme(legend.position="none")+
-  scale_fill_viridis(option="D")
+  select(Race,AWR,AgeExec,Served)
 
-# Age executed vs race
-p2 <- xCom %>% 
-  filter(Race != "Other") %>% 
-  ggplot(aes(x=AgeExec,y=Race,fill=..density..))+
-  geom_density_ridges_gradient(scale=1.5,rel_min_height=.01)+
-  scale_x_continuous(limits=c(10,70),
-                     breaks=c(seq(15,70,5)))+
-  ggtitle("Age of execution by race")+
-  xlab("Age when executed")+
-  theme(legend.position="none")+
-  scale_fill_viridis(option="D")
+df <- df %>% 
+  gather(key = "Age.thingy", value = "Years", colnames(df)[2:4]) %>%
+  mutate(Race = factor(Race))
 
-grid.arrange(p1,p2,nrow=1)
+ggplot(data = df, aes(x = Race, y = Years, fill = Race))+
+  geom_boxplot(outlier.shape=NA)+
+  geom_jitter(shape=16,position=position_jitter(.15),alpha=.3)+
+  coord_flip()+
+  facet_wrap(~Age.thingy, nrow = 3, strip.position = "top")+
+  theme_bw()
 ```
 
-
+We see that Blacks tend to be received sooner than Hispanics, while Whites are generally received much later than both other Races. Time served before execution does remain quite similar between all races.  
 
 ## Number of victims vs
 Does anything change when the number of victims increases? It's a bit difficult to make concrete conclusions based on such little data. We can see pretty quickly that most inmates had a single victim. Time served does not seem to fluctuate much based solely on the number of victims: the median seems to stay within the 10 year range we saw before.
