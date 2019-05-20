@@ -107,20 +107,23 @@ x.3 <- x.2 %>%
   group_by(Race) %>% 
   summarise(total=sum(n))
 ## each word used compared to total used per race
-x.4 <- left_join(x.2,x.3)
-
 ## common words like i,you, to, etc appear very frequently of course
+x.4 <- left_join(x.2,x.3) 
+
 ggplot(x.4,aes(n/total,fill=Race))+
   geom_histogram(show.legend=FALSE)+
-  # xlim(NA,0.0009)+
+  xlim(NA,0.009)+
   facet_wrap(~Race,scales="free_y")
 
 x.5 <- x.4 %>% 
+  group_by(Race) %>% 
   mutate(rank=row_number(),
          `term frequency` =n/total)
+x.5
+
 x.5 %>% 
   ggplot(aes(rank,`term frequency`,color=Race))+
-  geom_line(size = 1.1, alpha = 0.8, show.legend = TRUE) + 
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
   scale_x_log10() +
   scale_y_log10()
 
@@ -134,11 +137,10 @@ x.6 %>%
   arrange(desc(tf_idf))
 
 x.6 %>% 
-  # filter(Race!="Other") %>% 
   arrange(desc(tf_idf)) %>% 
   mutate(word=factor(word,levels=rev(unique(word)))) %>% 
   group_by(Race) %>% 
-  top_n(25,tf_idf) %>% 
+  top_n(10,tf_idf) %>% 
   ungroup() %>% 
   ggplot(aes(word, tf_idf,fill=Race))+
   geom_col(show.legend=F)+
@@ -163,8 +165,61 @@ x.bigrams.filtered <- x.bigrams.separated %>%
 x.bigram.counts <- x.bigrams.filtered %>% 
   count(word1,word2,sort=T)
 
+# recombine bigrams without stop words
 x.bigrams.united <- x.bigrams.filtered %>% 
-  unite(bigram,word1,word2,sep=" ")
+  unite(bigram,word1,word2,sep=" ") 
+
+# wordcloud of most common bigrams ALL
+x.bigrams.united %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=5,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5)))
+
+# wordcloud of most common bigrams WHITE
+x.bigrams.united %>%
+  filter(Race == "White") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+# wordcloud of most common bigrams BLACK
+x.bigrams.united %>%
+  filter(Race == "Black") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+# wordcloud of most common bigrams HISPANIC
+x.bigrams.united %>%
+  filter(Race == "Hispanic") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+
+
+
+
 
 x.bigrams.filtered %>% 
   filter(word1 == "polunsky") %>% 

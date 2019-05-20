@@ -16,8 +16,8 @@ output:
       # fig_width: 7
       # fig_height: 6
       # fig_caption: true
-      # citation_package: natbib
-# bibliography: bib.bib
+      citation_package: natbib
+bibliography: bib.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -40,6 +40,14 @@ if(!require(gridExtra)) install.packages("gridExtra")
 library(gridExtra)
 if(!require(ggalt)) install.packages("ggalt")
 library(ggalt)
+if(!require(tidytext)) install.packages("tidytext")
+library(tidytext)
+if(!require(RColorBrewer)) install.packages("RColorBrewer")
+library(RColorBrewer)
+if(!require(wordcloud)) install.packages("wordcloud")
+library(wordcloud)
+if(!require(reshape2)) install.packages("reshape2")
+library(reshape2)
 
 # clear history
 rm(list = ls())
@@ -339,18 +347,18 @@ grid.arrange(e1,e2,nrow=1)
 We garnered a few minor insights from looking at the data about potential differences among the inmates. Now we take a turn and see what they all might have in common regarding their final words.  
 
 ## Common words
-Perhaps the easiest analysis is to simply list the most popular words used. We start with cleaning and then present the data.  
+Perhaps the easiest analysis is to simply list the most popular words used. Before doing so we need to add a few stopwords that appear too frequently and tidy the data for use in our plots.
 
 ```{r}
 y <- x$LastStatement
-y <- data_frame(y)
+y <- tibble(y)
 
 custom_stop_words <- 
   bind_rows(stop_words,
             data_frame(word = c("ya'll", 
                                 "y'all",
                                 "warden"),
-                       lexicon = "custom"))
+                       lexicon ="custom"))
 
 # tidy the text
 y.tidy <- y %>% 
@@ -372,11 +380,7 @@ y.tidy %>%
   xlab(NULL) +
   coord_flip()+
   theme_bw()
-```
 
-A prettier method of presentation might be to use a wordcloud instead.  
-
-```{r}
 # wordcloud of above list of top used words
 pal <- brewer.pal(8,"Dark2")
 y.tidy %>% 
@@ -387,13 +391,8 @@ y.tidy %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5)
-                 ))
-```
+                 scale=c(3,.5)))
 
-We can also sort by positive and negative sentinment words.  
-
-```{r}
 # Comparison wordcloud of top used words according to (bing) sentiment
 ## negative words likely taken grossly out of context in this case
 y.tidy %>%
@@ -403,5 +402,191 @@ y.tidy %>%
   comparison.cloud(max.words = 80
                    # scale=c(3,.2)
                    )
+```
+
+We've displayed the most popular words in a few different ways. 
+The top word used by far is "love". We see "family" and "forgive" and "peace" show up quite frequently as well which may indicate that most last statements are expressing a need for spiritual forgiveness, or love to families, or peace in death. When we sort by negative and positive sentiment we also get an idea of a potential bitterness in some of the last statements, though it's highly possible that many of the words are mischaracterized via use of negating prefixes.  
+
+## Term frequency by Race
+Are there differences in words used when we segregate our last statements by race?  
+
+When we unnest our words and group them by race we can see that total words used per race follows our expectations based on number of inmates (Hispanic < Black < White).  
+
+Term frequency refers to how frequently an item appears in a document. Because unimportant words like 'I', 'you', 'to', etc., may appear too frequently to garner any use from this measure. The plot below illustrates this.  
+
+```{r}
+# select statement and race columns
+x.1 <- x %>% 
+  select(Race, LastStatement)
+
+# unnested words used per race
+x.2 <- x.1 %>% 
+  unnest_tokens(word,LastStatement) %>% 
+  count(Race,word,sort=T) %>% 
+  ungroup()
+
+# total words used per race
+x.3 <- x.2 %>% 
+  group_by(Race) %>% 
+  summarise(total=sum(n))
+x.3
+
+# each word used compared to total used per race
+# common words like i,you, to, etc appear very frequently
+x.4 <- left_join(x.2,x.3)
+x.4
+
+# graphical representation of the above word distribution
+ggplot(x.4,aes(n/total,fill=Race))+
+  geom_histogram(show.legend=FALSE)+
+  xlim(NA,0.009)+
+  facet_wrap(~Race,scales="free_y")
+```
+
+Instead of having to manually add all these common words as stop words, we can use a terms inverse document frequency (idf) instead. In this case we use the `tf-idf` measure to find the important words in the document that are common, but not *too* common [@tidy].
+
+```{r}
+x.6 <- x.4 %>% 
+  bind_tf_idf(word,Race,n)
+
+x.6 %>% 
+  filter(Race != "Other") %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word=factor(word,levels=rev(unique(word)))) %>% 
+  group_by(Race) %>% 
+  top_n(15,tf_idf) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf,fill=Race))+
+  geom_col(show.legend=F)+
+  labs(x=NULL,y="tf-df")+
+  facet_wrap(~Race,scale="free")+
+  coord_flip()
+```
+
+# Bigrams
+Our sentiment analysis showed a few negative words that may have falsely represented negative sentiment due to a modifier prefix (*e.g.* not guilty, no pain; never loved, etc.). We can attempt to better understand the relationships between words by taking apart our last statements in pairs of words, or bigrams.  
+
+```{r}
+# collect bigrams
+x.bigrams <- x.1 %>% 
+  unnest_tokens(bigram,LastStatement,token="ngrams",n=2)
+
+# most common bigrams
+x.bigrams %>% 
+  count(bigram,sort=T)
+
+# remove stop words occurring in either word pair
+x.bigrams.separated <- x.bigrams %>% 
+  separate(bigram, c("word1","word2"),sep=" ")
+
+x.bigrams.filtered <- x.bigrams.separated %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word)
+
+# new most common bigrams
+x.bigram.counts <- x.bigrams.filtered %>% 
+  count(word1,word2,sort=T)
+x.bigram.counts
+```
+
+And we can throw a wordcloud of common bigrams for all inmates as well as filtered by race.  
+
+## Wordcloud of bigrams {.tabset}
+
+### All
+```{r}
+# recombine bigrams without stop words
+x.bigrams.united <- x.bigrams.filtered %>% 
+  unite(bigram,word1,word2,sep=" ") 
+
+# wordcloud of most common bigrams ALL
+bg.all <- x.bigrams.united %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=5,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5)))
+```
+
+### White
+```{r}
+# wordcloud of most common bigrams WHITE
+bg.white <- x.bigrams.united %>%
+  filter(Race == "White") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5)))
+```
+
+### Black
+```{r}
+# wordcloud of most common bigrams BLACK
+bg.black <- x.bigrams.united %>%
+  filter(Race == "Black") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5)))
+```
+
+### Hispanic
+```{r}
+# wordcloud of most common bigrams HISPANIC
+bg.hispanic <- x.bigrams.united %>%
+  filter(Race == "Hispanic") %>% 
+  count(bigram) %>% 
+  with(wordcloud(bigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+```
+
+
+
+
+
+
+```{r}
+x.bigrams.united <- x.bigrams.filtered %>% 
+  unite(bigram,word1,word2,sep=" ")
+
+x.bigrams.filtered %>% 
+  filter(word1 == "polunsky") %>% 
+  count(Race, word1,sort=T)
+
+x.bigram.tf.idf <- x.bigrams.united %>% 
+  count(Race,bigram) %>% 
+  bind_tf_idf(bigram,Race,n) %>% 
+  arrange(desc(tf_idf))
+
+x.bigram.tf.idf %>% 
+  filter(Race!="Other") %>% 
+  arrange(desc(tf_idf)) %>%
+  mutate(bigram=factor(bigram,levels=rev(unique(bigram)))) %>%
+  group_by(Race) %>% 
+  top_n(5) %>% 
+  ungroup() %>%
+  ggplot(aes(bigram, tf_idf,fill=Race))+
+  geom_col(show.legend=F)+
+  labs(x=NULL,y="tf-df")+
+  facet_wrap(~Race,scale="free")+
+  coord_flip()
+
 ```
 
