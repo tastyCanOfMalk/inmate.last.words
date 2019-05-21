@@ -214,16 +214,16 @@ x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5))) 
+                 scale=c(4,.5))) 
 
+# what is polunsky?
+# x.bigrams.filtered %>% 
+#   filter(word1 == "polunsky") %>% 
+#   count(Race, word1,sort=T)
+# x.bigrams.filtered %>%
+#   filter(word1 == "john") %>%
+#   count(Race, word1,sort=T)
 
-
-
-
-
-x.bigrams.filtered %>% 
-  filter(word1 == "polunsky") %>% 
-  count(Race, word1,sort=T)
 
 x.bigram.tf.idf <- x.bigrams.united %>% 
   count(Race,bigram) %>% 
@@ -231,7 +231,6 @@ x.bigram.tf.idf <- x.bigrams.united %>%
   arrange(desc(tf_idf))
 
 x.bigram.tf.idf %>% 
-  filter(Race!="Other") %>% 
   arrange(desc(tf_idf)) %>%
   mutate(bigram=factor(bigram,levels=rev(unique(bigram)))) %>%
   group_by(Race) %>% 

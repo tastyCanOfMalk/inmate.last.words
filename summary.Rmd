@@ -61,7 +61,10 @@ I found this data via a Kaggle post: https://www.kaggle.com/mykhe1097/last-words
 
 The title alone was interesting enough to merit more than a passing glance. I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
 
-# Import
+# Setup data
+Setting up the data consists of everything involving preparing the data for analysis.  
+
+## Import
 In general, my initial process is very similar from project to project: import the data, use `glimpse` and `summary` to get an idea of the structure, sort all variables by descending unique levels, and plot the missingness of each variable. I find that even if this information isn't specifically useful in every case it gives a nice overview of the data.  
 
 ```{r}
@@ -84,7 +87,7 @@ gg_miss_var(x, show_pct = T)
 
 At this point I can already tell that I'm going to drop the more specific `HispanicVictim` or `BlackVictim` variables in favor of the more generalized `NumberVictim` variable. The `AgeWhenReceived` variable also sounds like it could be an interesting variable to work with paired with `Race` or `Age`. 
 
-# Impute
+## Impute
 I'll start by listing all the variables I might be interested in working with.  
 
   1. First name
@@ -167,9 +170,9 @@ summary(xCom)[,-rem]
 summary(x1)[,-rem]
 ```
 
-# Fix
-**Time served measurement**
-I wanted to add a time served, or `Served` measurement. Upon doing this an error in the data presented itself plainly in the `summary` measure which reporeted a value of -1.  
+## Fix
+I wanted to add a **Time served measurement** 
+, or `Served` measurement. Upon doing this an error in the data presented itself plainly in the `summary` measure which reporeted a value of -1.  
 
 ```{r}
 # add time served column
@@ -195,15 +198,10 @@ xCom[266,]$Served <- 10
 ```
 
 # EDA
-We're ready to do some exploratory data analysis at this point. What I'm interested in are probably cliche points of analysis but given the variables presented they seem to stand out.  
-
-  * Race vs Time served
-  * Race vs Age when received
+We're ready to do some exploratory data analysis at this point. The most straightforward analyses consist of segregating by racial differences. There are 2 datapoints which are labeled as `Other` for `Race`. We will filter these out because of this.  
 
 ## Race vs time served
 Does race play a part in how many years are served leading up to the execution date? Based on summary data it seems that time served is roughly the same for all races. We can plot density and histogram plots to show the relative and absolute differences in time served between races.  
-
-Note there were 2 races classified as `Other`, which were removed.  
 
 ```{r}
 # check races, remove 'other' when plotting
@@ -232,7 +230,7 @@ grid.arrange(g1,g2,nrow=1)
 
 We see clearly, based on the density plot, that time served between the different races represented are very similar. When we look at the histogram we do notice there are far fewer hispanics and appear to be slightly more whites in this population.
 
-## Race vs age when received/executed
+## Race vs age received, executed
 What can we discover about when the inmates were first received and how race impacts this?  Along the same vein, does age of execution remain similar between races?  
 
 ```{r}
@@ -282,7 +280,7 @@ ggplot(data = df, aes(x = Race, y = Years, fill = Race))+
 
 We see that Blacks tend to be received sooner than Hispanics, while Whites are generally received much later than both other Races. Time served before execution does remain quite similar between all races.  
 
-## Number of victims vs
+## Victims vs served
 Does anything change when the number of victims increases? It's a bit difficult to make concrete conclusions based on such little data. We can see pretty quickly that most inmates had a single victim. Time served does not seem to fluctuate much based solely on the number of victims: the median seems to stay within the 10 year range we saw before.
 
 ```{r}
@@ -315,7 +313,7 @@ grid.arrange(p3,p4,nrow=1)
 
 Education level is also relatively constant throughout the range of inmates. In the standard histogram we see a huge dropoff after education level 12 (assumedly High School, grade 12). In fact, our largest peaks occur between grades 9-12, indicating that not completing high school has a potentially significant impact on becoming a deathrow inmate.  
 
-When comparing the number of victims to education level, however, we do not see much of a relationship.  
+The histogram and boxplot seem to reinforce the idea that most inmates did not complete high school, as the median education level is consistently below year 12.   
 
 ```{r}
 # education level vs number of victims
@@ -333,6 +331,7 @@ e2 <- xCom %>%
   # select(Served, NumberVictim) %>% 
   ggplot(aes(y=EducationLevel,x=as.factor(NumberVictim)))+
   geom_boxplot(outlier.color = NA)+
+  # geom_hline(yintercept=12,alpha=.8,linetype="dotted")+
   coord_flip()+
   geom_jitter(width=.2,alpha=.4,aes(color=as.factor(NumberVictim)))+
   theme(legend.position = "none")+
@@ -391,7 +390,7 @@ y.tidy %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5)))
+                 scale=c(4,.5)))
 
 # Comparison wordcloud of top used words according to (bing) sentiment
 ## negative words likely taken grossly out of context in this case
@@ -400,7 +399,7 @@ y.tidy %>%
   count(word, sentiment, sort = TRUE) %>%
   acast(word ~ sentiment, value.var = "n", fill = 0) %>%
   comparison.cloud(max.words = 80
-                   # scale=c(3,.2)
+                   scale=c(4,.2)
                    )
 ```
 
@@ -417,6 +416,7 @@ Term frequency refers to how frequently an item appears in a document. Because u
 ```{r}
 # select statement and race columns
 x.1 <- x %>% 
+  filter(Race != "Other") %>% 
   select(Race, LastStatement)
 
 # unnested words used per race
@@ -450,11 +450,10 @@ x.6 <- x.4 %>%
   bind_tf_idf(word,Race,n)
 
 x.6 %>% 
-  filter(Race != "Other") %>% 
   arrange(desc(tf_idf)) %>% 
   mutate(word=factor(word,levels=rev(unique(word)))) %>% 
   group_by(Race) %>% 
-  top_n(15,tf_idf) %>% 
+  top_n(10,tf_idf) %>% 
   ungroup() %>% 
   ggplot(aes(word, tf_idf,fill=Race))+
   geom_col(show.legend=F)+
@@ -464,7 +463,9 @@ x.6 %>%
 ```
 
 # Bigrams
-Our sentiment analysis showed a few negative words that may have falsely represented negative sentiment due to a modifier prefix (*e.g.* not guilty, no pain; never loved, etc.). We can attempt to better understand the relationships between words by taking apart our last statements in pairs of words, or bigrams.  
+Our sentiment analysis showed a few negative words that may have falsely represented negative sentiment due to a modifier prefix (*e.g.* not guilty, no pain; never loved, etc.). We can attempt to better understand the relationships between words bytokenizing in pairs of words, or bigrams, instead of single words.  
+
+Rather quickly, we can look at our most common bigrams.
 
 ```{r}
 # collect bigrams
@@ -474,7 +475,11 @@ x.bigrams <- x.1 %>%
 # most common bigrams
 x.bigrams %>% 
   count(bigram,sort=T)
+```
 
+And we can remove stop words to get a better representation of important topics.  
+
+```{r}
 # remove stop words occurring in either word pair
 x.bigrams.separated <- x.bigrams %>% 
   separate(bigram, c("word1","word2"),sep=" ")
@@ -489,9 +494,9 @@ x.bigram.counts <- x.bigrams.filtered %>%
 x.bigram.counts
 ```
 
-And we can throw a wordcloud of common bigrams for all inmates as well as filtered by race.  
+Rather than browse lists of popular bigrams we can represent our most popular bigrams in a wordcloud, and also segregate by race to determine if any racial differences exist.  
 
-## Wordcloud of bigrams {.tabset}
+## Wordclouds of bigrams by race {.tabset}
 
 ### All
 ```{r}
@@ -508,7 +513,7 @@ bg.all <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5)))
+                 scale=c(4,.5)))
 ```
 
 ### White
@@ -523,7 +528,7 @@ bg.white <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5)))
+                 scale=c(4,.5)))
 ```
 
 ### Black
@@ -538,7 +543,7 @@ bg.black <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5)))
+                 scale=c(4,.5)))
 ```
 
 ### Hispanic
@@ -553,22 +558,19 @@ bg.hispanic <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(3,.5))) 
+                 scale=c(4,.5))) 
 
 ```
 
+## Term frequency by race
 
-
-
-
+We can repeat what we did above with our term frequency measure, used on bigrams instead of single words.  
 
 ```{r}
-x.bigrams.united <- x.bigrams.filtered %>% 
-  unite(bigram,word1,word2,sep=" ")
 
-x.bigrams.filtered %>% 
-  filter(word1 == "polunsky") %>% 
-  count(Race, word1,sort=T)
+# x.bigrams.filtered %>% 
+#   filter(word1 == "polunsky") %>% 
+#   count(Race, word1,sort=T)
 
 x.bigram.tf.idf <- x.bigrams.united %>% 
   count(Race,bigram) %>% 
@@ -587,6 +589,38 @@ x.bigram.tf.idf %>%
   labs(x=NULL,y="tf-df")+
   facet_wrap(~Race,scale="free")+
   coord_flip()
-
 ```
 
+
+# Outline
+Intro
+Setup data
+  Import
+  Impute
+  Fix
+EDA
+  Race vs time served
+  Race vs received/executed
+  Number of victims vs served
+  Education level vs...
+NLP
+  Monograms
+    Common words - bar
+    Common words - wordcloud
+    Common words - wordcloud, sentiment (remove?)
+    Term frequency - bar
+    Term frequency - wordcloud
+  Bigrams  
+    Common words - bar
+    Common words - wordcloud
+    Term frequency - bar
+    Term frequency - wordcloud
+  Trigrams  
+    Common words - bar
+    Common words - wordcloud
+    Term frequency - bar
+    Term frequency - wordcloud
+  Igraph
+    Bigram
+    Trigram
+Conclusion
