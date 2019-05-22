@@ -10,7 +10,7 @@ output:
       toc: true
       toc_float:
         collapsed: true
-      toc_depth: 3
+      toc_depth: 4
       df_print: paged
       code_folding: show
       # fig_width: 7
@@ -59,9 +59,9 @@ setwd("D:/Code/R/inmate.last.words")
 # Introduction
 I found this data via a Kaggle post: https://www.kaggle.com/mykhe1097/last-words-of-death-row-inmates. The original data was taken from: https://www.tdcj.texas.gov/death_row/dr_executed_offenders.html.  
 
-The title alone was interesting enough to merit more than a passing glance. I'll start with a very simple, generalized analysis, moving on to a more in depth sentiment analysis utilizing the tidytext package.
+The title alone was interesting enough to merit more than a passing glance. I begin with the data setup involving importing and imputation. Following this, I do some cursory exploratory data analysis (EDA) followed by some natural language processing (NLP).  
 
-# Setup data
+# Data setup
 Setting up the data consists of everything involving preparing the data for analysis.  
 
 ## Import
@@ -342,10 +342,13 @@ e2 <- xCom %>%
 grid.arrange(e1,e2,nrow=1)
 ```
 
-# Text analysis
+# NLP
 We garnered a few minor insights from looking at the data about potential differences among the inmates. Now we take a turn and see what they all might have in common regarding their final words.  
 
-## Common words
+## Unigrams
+Single word analysis, when n=1.    
+
+### Common words
 Perhaps the easiest analysis is to simply list the most popular words used. Before doing so we need to add a few stopwords that appear too frequently and tidy the data for use in our plots.
 
 ```{r}
@@ -354,20 +357,19 @@ y <- tibble(y)
 
 custom_stop_words <- 
   bind_rows(stop_words,
-            data_frame(word = c("ya'll", 
-                                "y'all",
-                                "warden"),
-                       lexicon ="custom"))
+            tibble(word = c("ya'll", 
+                            "y'all",
+                            "warden"),
+                   lexicon ="custom"))
 
 # tidy the text
 y.tidy <- y %>% 
   unnest_tokens(word,y) %>% 
   anti_join(custom_stop_words)
 
-# list of top 20 used words, sorted
+# sorted list of top words
 y.tidy %>% 
-  count(word, sort = TRUE) %>% 
-  slice(1:20)
+  count(word, sort = TRUE)
 
 # plot of above list of top used words
 y.tidy %>% 
@@ -380,7 +382,7 @@ y.tidy %>%
   coord_flip()+
   theme_bw()
 
-# wordcloud of above list of top used words
+# wordcloud of top used words
 pal <- brewer.pal(8,"Dark2")
 y.tidy %>% 
   count(word) %>% 
@@ -391,22 +393,12 @@ y.tidy %>%
                  random.order = F,
                  random.color = F,
                  scale=c(4,.5)))
-
-# Comparison wordcloud of top used words according to (bing) sentiment
-## negative words likely taken grossly out of context in this case
-y.tidy %>%
-  inner_join(get_sentiments("bing")) %>%
-  count(word, sentiment, sort = TRUE) %>%
-  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
-  comparison.cloud(max.words = 80
-                   scale=c(4,.2)
-                   )
 ```
 
 We've displayed the most popular words in a few different ways. 
 The top word used by far is "love". We see "family" and "forgive" and "peace" show up quite frequently as well which may indicate that most last statements are expressing a need for spiritual forgiveness, or love to families, or peace in death. When we sort by negative and positive sentiment we also get an idea of a potential bitterness in some of the last statements, though it's highly possible that many of the words are mischaracterized via use of negating prefixes.  
 
-## Term frequency by Race
+### Term frequency
 Are there differences in words used when we segregate our last statements by race?  
 
 When we unnest our words and group them by race we can see that total words used per race follows our expectations based on number of inmates (Hispanic < Black < White).  
@@ -462,7 +454,7 @@ x.6 %>%
   coord_flip()
 ```
 
-# Bigrams
+## Bigrams
 Our sentiment analysis showed a few negative words that may have falsely represented negative sentiment due to a modifier prefix (*e.g.* not guilty, no pain; never loved, etc.). We can attempt to better understand the relationships between words bytokenizing in pairs of words, or bigrams, instead of single words.  
 
 Rather quickly, we can look at our most common bigrams.
@@ -496,9 +488,9 @@ x.bigram.counts
 
 Rather than browse lists of popular bigrams we can represent our most popular bigrams in a wordcloud, and also segregate by race to determine if any racial differences exist.  
 
-## Wordclouds of bigrams by race {.tabset}
+### Wordclouds of bigrams by race {.tabset}
 
-### All
+#### All
 ```{r}
 # recombine bigrams without stop words
 x.bigrams.united <- x.bigrams.filtered %>% 
@@ -516,7 +508,7 @@ bg.all <- x.bigrams.united %>%
                  scale=c(4,.5)))
 ```
 
-### White
+#### White
 ```{r}
 # wordcloud of most common bigrams WHITE
 bg.white <- x.bigrams.united %>%
@@ -531,7 +523,7 @@ bg.white <- x.bigrams.united %>%
                  scale=c(4,.5)))
 ```
 
-### Black
+#### Black
 ```{r}
 # wordcloud of most common bigrams BLACK
 bg.black <- x.bigrams.united %>%
@@ -546,7 +538,7 @@ bg.black <- x.bigrams.united %>%
                  scale=c(4,.5)))
 ```
 
-### Hispanic
+#### Hispanic
 ```{r}
 # wordcloud of most common bigrams HISPANIC
 bg.hispanic <- x.bigrams.united %>%
@@ -593,6 +585,7 @@ x.bigram.tf.idf %>%
 
 
 # Outline
+```
 Intro
 Setup data
   Import
@@ -604,12 +597,11 @@ EDA
   Number of victims vs served
   Education level vs...
 NLP
-  Monograms
+  Words
     Common words - bar
-    Common words - wordcloud
-    Common words - wordcloud, sentiment (remove?)
+    Common words - wordcloud by race
     Term frequency - bar
-    Term frequency - wordcloud
+    Term frequency - wordcloud by race
   Bigrams  
     Common words - bar
     Common words - wordcloud
@@ -624,3 +616,4 @@ NLP
     Bigram
     Trigram
 Conclusion
+```
