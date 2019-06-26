@@ -1,0 +1,196 @@
+---
+title: 'Last words of Texas death row inmates'
+subtitle: 'An exploratory text analysis'
+author: 'Edward Yu'
+date: '2019-03-23'
+output:
+  html_document:
+      theme: flatly
+      highlight: tango
+      toc: true
+      toc_float:
+        collapsed: true
+      toc_depth: 4
+      df_print: paged
+      code_folding: show
+      # fig_width: 7
+      # fig_height: 6
+      # fig_caption: true
+      citation_package: natbib
+bibliography: bib.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo    = TRUE,
+                      error   = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+if(!require(tidyverse)) install.packages("tidyverse")
+library(tidyverse)
+if(!require(naniar)) install.packages("naniar")
+library(naniar) # gg_miss
+if(!require(mice)) install.packages("mice")
+library(mice) # gg_miss
+if(!require(ggridges)) install.packages("ggridges")
+library(ggridges)
+if(!require(viridis)) install.packages("viridis")
+library(viridis)
+if(!require(gridExtra)) install.packages("gridExtra")
+library(gridExtra)
+if(!require(ggalt)) install.packages("ggalt")
+library(ggalt)
+if(!require(tidytext)) install.packages("tidytext")
+library(tidytext)
+if(!require(RColorBrewer)) install.packages("RColorBrewer")
+library(RColorBrewer)
+if(!require(wordcloud)) install.packages("wordcloud")
+library(wordcloud)
+if(!require(reshape2)) install.packages("reshape2")
+library(reshape2)
+
+# clear history
+rm(list = ls())
+
+# setwd("I:/Code-CAD/R/inmate.last.words")
+setwd("D:/Code/R/inmate.last.words")
+```
+
+```{r}
+x <- read_csv("data/Texas Last Statement - CSV.csv") %>% 
+  filter(Race != "Other")
+
+x.unigrams <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(unigram,LastStatement,token="ngrams",n=1) %>% 
+  separate(unigram, c("word1"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  unite(unigram,word1,sep=" ") 
+
+pal <- brewer.pal(8,"Dark2")
+
+# wordcloud of most common unigrams ALL
+x.unigrams %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=20,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5)))
+
+# wordcloud of most common unigrams WHITE
+x.unigrams %>%
+  filter(Race == "White") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+# wordcloud of most common unigrams BLACK
+x.unigrams %>%
+  filter(Race == "Black") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+# wordcloud of most common unigrams HISPANIC
+x.unigrams %>%
+  filter(Race == "Hispanic") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+
+```
+
+### Term frequency
+The above wordclouds shows us what words are most common. What if we want to know which words are most unique or most unique between racial subgroups? Term frequency allows us to find this relationship and using inverse document frequency, `tf-idf`, allows us to find words that are common, but not *too* common [@tidy].
+
+```{r}
+# select statement and race columns
+x.1 <- x %>% 
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement)
+
+# unnested words used per race
+x.2 <- x.1 %>% 
+  unnest_tokens(word,LastStatement) %>% 
+  count(Race,word,sort=T) %>% 
+  ungroup()
+
+# total words used per race
+x.3 <- x.2 %>%
+  group_by(Race) %>%
+  summarise(total=sum(n))
+
+tf.x <- left_join(x.2,x.3) %>% 
+  bind_tf_idf(word,Race,n)
+
+tf.x %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word=factor(word,levels=rev(unique(word)))) %>% 
+  group_by(Race) %>% 
+  top_n(10,tf_idf) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf,fill=Race))+
+  geom_col(show.legend=F)+
+  labs(x=NULL,y="tf-df")+
+  facet_wrap(~Race,scale="free")+
+  coord_flip()
+```
+
+
+```{r}
+# total words used per race
+# x.3 <- x.2 %>% 
+#   group_by(Race) %>% 
+#   summarise(total=sum(n))
+# x.3
+
+# each word used compared to total used per race
+# common words like i,you, to, etc appear very frequently
+# x.4 <- left_join(x.2,x.3)
+# x.4
+
+# graphical representation of the above word distribution
+# ggplot(x.4,aes(n/total,fill=Race))+
+  # geom_histogram(show.legend=FALSE)+
+  # xlim(NA,0.009)+
+  # facet_wrap(~Race,scales="free_y")
+
+```
+
+Instead of having to manually add all these common words as stop words, we can use a terms inverse document frequency (idf) instead. In this case we use the `tf-idf` measure to find the important words in the document that are common, but not *too* common [@tidy].
+
+```{r}
+x.6 <- x.4 %>% 
+  bind_tf_idf(word,Race,n)
+
+x.6 %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word=factor(word,levels=rev(unique(word)))) %>% 
+  group_by(Race) %>% 
+  top_n(10,tf_idf) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf,fill=Race))+
+  geom_col(show.legend=F)+
+  labs(x=NULL,y="tf-df")+
+  facet_wrap(~Race,scale="free")+
+  coord_flip()
+```

@@ -343,50 +343,30 @@ grid.arrange(e1,e2,nrow=1)
 ```
 
 # NLP
-We garnered a few minor insights from looking at the data about potential differences among the inmates. Now we take a turn and see what they all might have in common regarding their final words.  
+Moving on to more text-based analysis we'll determine the most common words, bigrams, and trigrams used: as a whole, and by each racial subgroup.  
 
 ## Unigrams
 Single word analysis, when n=1.    
 
-### Common words
-Perhaps the easiest analysis is to simply list the most popular words used. Before doing so we need to add a few stopwords that appear too frequently and tidy the data for use in our plots.
+### Wordcloud of unigrams by race {.tabset}  
+Wordclouds give us an easy way to visualize differences in top word choice by race.  
 
+#### All
 ```{r}
-y <- x$LastStatement
-y <- tibble(y)
+x.unigrams <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(unigram,LastStatement,token="ngrams",n=1) %>% 
+  separate(unigram, c("word1"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  unite(unigram,word1,sep=" ") 
 
-custom_stop_words <- 
-  bind_rows(stop_words,
-            tibble(word = c("ya'll", 
-                            "y'all",
-                            "warden"),
-                   lexicon ="custom"))
-
-# tidy the text
-y.tidy <- y %>% 
-  unnest_tokens(word,y) %>% 
-  anti_join(custom_stop_words)
-
-# sorted list of top words
-y.tidy %>% 
-  count(word, sort = TRUE)
-
-# plot of above list of top used words
-y.tidy %>% 
-  count(word, sort = TRUE) %>% 
-  filter(n>80) %>% 
-  mutate(word=reorder(word,n)) %>% 
-  ggplot(aes(word, n)) +
-  geom_col() +
-  xlab(NULL) +
-  coord_flip()+
-  theme_bw()
+pal <- brewer.pal(8,"Dark2")
 
 # wordcloud of top used words
-pal <- brewer.pal(8,"Dark2")
-y.tidy %>% 
-  count(word) %>% 
-  with(wordcloud(word,n,
+x.unigrams %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
                  max.words=80,
                  min.freq=20,
                  colors=pal,
@@ -395,15 +375,56 @@ y.tidy %>%
                  scale=c(4,.5)))
 ```
 
+#### White
+```{r}
+# wordcloud of top used words
+x.unigrams %>%
+  filter(Race == "White") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(4,.5))) 
+```
+
+#### Black
+```{r}
+# wordcloud of top used words
+x.unigrams %>%
+  filter(Race == "Black") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(4,.5))) 
+```
+
+#### Hispanic
+```{r}
+# wordcloud of top used words
+x.unigrams %>%
+  filter(Race == "Hispanic") %>% 
+  count(unigram) %>% 
+  with(wordcloud(unigram,n,
+                 max.words=80,
+                 min.freq=10,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(4,.5))) 
+```
+
 We've displayed the most popular words in a few different ways. 
 The top word used by far is "love". We see "family" and "forgive" and "peace" show up quite frequently as well which may indicate that most last statements are expressing a need for spiritual forgiveness, or love to families, or peace in death. When we sort by negative and positive sentiment we also get an idea of a potential bitterness in some of the last statements, though it's highly possible that many of the words are mischaracterized via use of negating prefixes.  
 
 ### Term frequency
-Are there differences in words used when we segregate our last statements by race?  
-
-When we unnest our words and group them by race we can see that total words used per race follows our expectations based on number of inmates (Hispanic < Black < White).  
-
-Term frequency refers to how frequently an item appears in a document. Because unimportant words like 'I', 'you', 'to', etc., may appear too frequently to garner any use from this measure. The plot below illustrates this.  
+The above wordclouds shows us what words are most common. What if we want to know which words are most unique or most unique between racial subgroups? Term frequency allows us to find this relationship and using inverse document frequency, `tf-idf`, allows us to find words that are common, but not *too* common [@tidy].
 
 ```{r}
 # select statement and race columns
@@ -418,30 +439,14 @@ x.2 <- x.1 %>%
   ungroup()
 
 # total words used per race
-x.3 <- x.2 %>% 
-  group_by(Race) %>% 
+x.3 <- x.2 %>%
+  group_by(Race) %>%
   summarise(total=sum(n))
-x.3
 
-# each word used compared to total used per race
-# common words like i,you, to, etc appear very frequently
-x.4 <- left_join(x.2,x.3)
-x.4
-
-# graphical representation of the above word distribution
-ggplot(x.4,aes(n/total,fill=Race))+
-  geom_histogram(show.legend=FALSE)+
-  xlim(NA,0.009)+
-  facet_wrap(~Race,scales="free_y")
-```
-
-Instead of having to manually add all these common words as stop words, we can use a terms inverse document frequency (idf) instead. In this case we use the `tf-idf` measure to find the important words in the document that are common, but not *too* common [@tidy].
-
-```{r}
-x.6 <- x.4 %>% 
+tf.x <- left_join(x.2,x.3) %>% 
   bind_tf_idf(word,Race,n)
 
-x.6 %>% 
+tf.x %>% 
   arrange(desc(tf_idf)) %>% 
   mutate(word=factor(word,levels=rev(unique(word)))) %>% 
   group_by(Race) %>% 
@@ -583,6 +588,9 @@ x.bigram.tf.idf %>%
   coord_flip()
 ```
 
+## Bigrams
+
+## Trigrams
 
 # Outline
 ```
