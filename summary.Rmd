@@ -423,7 +423,7 @@ x.unigrams %>%
 We've displayed the most popular words in a few different ways. 
 The top word used by far is "love". We see "family" and "forgive" and "peace" show up quite frequently as well which may indicate that most last statements are expressing a need for spiritual forgiveness, or love to families, or peace in death. When we sort by negative and positive sentiment we also get an idea of a potential bitterness in some of the last statements, though it's highly possible that many of the words are mischaracterized via use of negating prefixes.  
 
-### Term frequency
+### Term frequency by race
 The above wordclouds shows us what words are most common. What if we want to know which words are most unique or most unique between racial subgroups? Term frequency allows us to find this relationship and using inverse document frequency, `tf-idf`, allows us to find words that are common, but not *too* common [@tidy].
 
 ```{r}
@@ -464,59 +464,36 @@ Our sentiment analysis showed a few negative words that may have falsely represe
 
 Rather quickly, we can look at our most common bigrams.
 
-```{r}
-# collect bigrams
-x.bigrams <- x.1 %>% 
-  unnest_tokens(bigram,LastStatement,token="ngrams",n=2)
-
-# most common bigrams
-x.bigrams %>% 
-  count(bigram,sort=T)
-```
-
-And we can remove stop words to get a better representation of important topics.  
-
-```{r}
-# remove stop words occurring in either word pair
-x.bigrams.separated <- x.bigrams %>% 
-  separate(bigram, c("word1","word2"),sep=" ")
-
-x.bigrams.filtered <- x.bigrams.separated %>% 
-  filter(!word1 %in% stop_words$word) %>% 
-  filter(!word2 %in% stop_words$word)
-
-# new most common bigrams
-x.bigram.counts <- x.bigrams.filtered %>% 
-  count(word1,word2,sort=T)
-x.bigram.counts
-```
-
-Rather than browse lists of popular bigrams we can represent our most popular bigrams in a wordcloud, and also segregate by race to determine if any racial differences exist.  
-
 ### Wordclouds of bigrams by race {.tabset}
 
 #### All
 ```{r}
-# recombine bigrams without stop words
-x.bigrams.united <- x.bigrams.filtered %>% 
+x.bigrams <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(bigram,LastStatement,token="ngrams",n=2) %>% 
+  separate(bigram, c("word1","word2"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word) %>% 
   unite(bigram,word1,word2,sep=" ") 
 
+
 # wordcloud of most common bigrams ALL
-bg.all <- x.bigrams.united %>% 
+x.bigrams%>%
   count(bigram) %>% 
   with(wordcloud(bigram,n,
                  max.words=80,
-                 min.freq=5,
+                 min.freq=3,
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(4,.5)))
+                 scale=c(3,.5)))
 ```
 
 #### White
 ```{r}
 # wordcloud of most common bigrams WHITE
-bg.white <- x.bigrams.united %>%
+x.bigrams%>%
   filter(Race == "White") %>% 
   count(bigram) %>% 
   with(wordcloud(bigram,n,
@@ -525,13 +502,13 @@ bg.white <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(4,.5)))
+                 scale=c(3,.5)))
 ```
 
 #### Black
 ```{r}
 # wordcloud of most common bigrams BLACK
-bg.black <- x.bigrams.united %>%
+x.bigrams %>%
   filter(Race == "Black") %>% 
   count(bigram) %>% 
   with(wordcloud(bigram,n,
@@ -540,13 +517,13 @@ bg.black <- x.bigrams.united %>%
                  colors=pal,
                  random.order = F,
                  random.color = F,
-                 scale=c(4,.5)))
+                 scale=c(3,.5)))
 ```
 
 #### Hispanic
 ```{r}
 # wordcloud of most common bigrams HISPANIC
-bg.hispanic <- x.bigrams.united %>%
+x.bigrams %>%
   filter(Race == "Hispanic") %>% 
   count(bigram) %>% 
   with(wordcloud(bigram,n,
@@ -556,26 +533,17 @@ bg.hispanic <- x.bigrams.united %>%
                  random.order = F,
                  random.color = F,
                  scale=c(4,.5))) 
-
 ```
 
-## Term frequency by race
-
+### Term frequency by race
 We can repeat what we did above with our term frequency measure, used on bigrams instead of single words.  
-
 ```{r}
-
-# x.bigrams.filtered %>% 
-#   filter(word1 == "polunsky") %>% 
-#   count(Race, word1,sort=T)
-
-x.bigram.tf.idf <- x.bigrams.united %>% 
+x.bigram.tf.idf <- x.bigrams %>% 
   count(Race,bigram) %>% 
   bind_tf_idf(bigram,Race,n) %>% 
   arrange(desc(tf_idf))
 
 x.bigram.tf.idf %>% 
-  filter(Race!="Other") %>% 
   arrange(desc(tf_idf)) %>%
   mutate(bigram=factor(bigram,levels=rev(unique(bigram)))) %>%
   group_by(Race) %>% 
@@ -588,9 +556,176 @@ x.bigram.tf.idf %>%
   coord_flip()
 ```
 
-## Bigrams
 
 ## Trigrams
+Out of curiousity we can also check out the most common trigrams, if they exist.  
+
+### Wordclouds of trigrams by race {.tabset}
+
+#### All
+```{r}
+x.trigrams <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(trigram,LastStatement,token="ngrams",n=3) %>% 
+  separate(trigram, c("word1","word2","word3"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word) %>% 
+  filter(!word3 %in% stop_words$word) %>% 
+  unite(trigram,word1,word2,word3,sep=" ") 
+
+
+# wordcloud of most common trigrams ALL
+x.trigrams%>%
+  count(trigram) %>% 
+  with(wordcloud(trigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+```
+
+#### White
+```{r}
+# wordcloud of most common trigrams WHITE
+x.trigrams%>%
+  filter(Race == "White") %>% 
+  count(trigram) %>% 
+  with(wordcloud(trigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+```
+
+#### Black
+```{r}
+# wordcloud of most common trigrams BLACK
+x.trigrams %>%
+  filter(Race == "Black") %>% 
+  count(trigram) %>% 
+  with(wordcloud(trigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(3,.5))) 
+```
+
+#### Hispanic
+```{r}
+# wordcloud of most common trigrams HISPANIC
+x.trigrams %>%
+  filter(Race == "Hispanic") %>% 
+  count(trigram) %>% 
+  with(wordcloud(trigram,n,
+                 max.words=80,
+                 min.freq=3,
+                 colors=pal,
+                 random.order = F,
+                 random.color = F,
+                 scale=c(4,.5))) 
+```
+
+### Term frequency by race
+```{r}
+x.trigram.tf.idf <- x.trigrams %>% 
+  count(Race,trigram) %>% 
+  bind_tf_idf(trigram,Race,n) %>% 
+  arrange(desc(tf_idf))
+
+x.trigram.tf.idf %>% 
+  arrange(desc(tf_idf)) %>%
+  mutate(trigram=factor(trigram,levels=rev(unique(trigram)))) %>%
+  group_by(Race) %>% 
+  top_n(5) %>% 
+  ungroup() %>%
+  ggplot(aes(trigram, tf_idf,fill=Race))+
+  geom_col(show.legend=F)+
+  labs(x=NULL,y="tf-df")+
+  facet_wrap(~Race,scale="free")+
+  coord_flip()
+```
+
+## Igraph
+
+### Bigrams
+```{r}
+x.bigram.count <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(bigram,LastStatement,token="ngrams",n=2) %>% 
+  separate(bigram, c("word1","word2"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word) %>% 
+  count(word1,word2,sort=T)
+
+x.bigram.graph <- x.bigram.count %>% 
+  filter(n>4) %>% 
+  graph_from_data_frame()
+
+ggraph(x.bigram.graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
+```
+```{r}
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+ggraph(x.bigram.graph, layout = "auto") +
+  geom_edge_link(aes(edge_alpha = n), 
+                 show.legend = FALSE,
+                 arrow = a, 
+                 end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", 
+                  size = 4) +
+  geom_node_text(aes(label = name), 
+                 vjust = 1.2, 
+                 hjust = .2)
+```
+
+### Unigrams
+
+```{r}
+x.unigram.count <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(bigram,LastStatement,token="ngrams",n=1) %>% 
+  separate(bigram, c("word1"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  count(word1,sort=T)
+
+x.unigram.graph <- x.unigram.count %>% 
+  filter(n>4) %>% 
+  graph_from_data_frame()
+
+ggraph(x.unigram.graph, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Outline
 ```

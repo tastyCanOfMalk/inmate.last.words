@@ -295,21 +295,44 @@ x.bigram.graph <- x.bigram.counts %>%
   filter(n>4) %>% 
   graph_from_data_frame()
 
-ggraph(x.bigram.graph, layout = "fr") +
+ggraph(x.bigram.graph, layout = "auto") +
   geom_edge_link() +
   geom_node_point() +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1)
 
 a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
 
-ggraph(x.bigram.graph, layout = "fr") +
-  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
-                 arrow = a, end_cap = circle(.07, 'inches')) +
-  geom_node_point(color = "lightblue", size = 5) +
-  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
-  theme_void()
+ggraph(x.bigram.graph, layout = "auto") +
+  geom_edge_link(aes(edge_alpha = n), 
+                 show.legend = FALSE,
+                 arrow = a, 
+                 end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", 
+                  size = 4) +
+  geom_node_text(aes(label = name), 
+                 vjust = 1.5, 
+                 hjust = 1.1)
+  # theme_void()
 
 
 x.1 %>% 
   filter(Race=="Black")
 
+#########
+# unigram
+x.unigram.count <- x %>%
+  filter(Race != "Other") %>% 
+  select(Race, LastStatement) %>% 
+  unnest_tokens(bigram,LastStatement,token="ngrams",n=1) %>% 
+  separate(bigram, c("word1"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  count(word1,sort=T)
+
+x.unigram.graph <- x.unigram.count %>% 
+  filter(n>15) %>% 
+  graph_from_data_frame()
+
+ggraph(x.unigram.graph, layout = "auto") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
